@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Zombie Survival</title>
+  <style>
+    body { margin: 0; overflow: hidden; background: black; }
+    canvas { display: block; margin: auto; background: #111; }
+  </style>
+</head>
+<body>
+
+<canvas id="game" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let player = { x: 400, y: 300, size: 20, speed: 4, health: 100 };
+let keys = {};
+let bullets = [];
+let zombies = [];
+
+// Controls
+document.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+document.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+
+// Shoot
+canvas.addEventListener("click", e => {
+  bullets.push({
+    x: player.x,
+    y: player.y,
+    dx: (e.offsetX - player.x) / 20,
+    dy: (e.offsetY - player.y) / 20
+  });
+});
+
+// Spawn zombies
+setInterval(() => {
+  zombies.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() < 0.5 ? 0 : canvas.height,
+    size: 20,
+    health: 10
+  });
+}, 1500);
+
+// Game loop
+function update() {
+  // Move player
+  if (keys["w"]) player.y -= player.speed;
+  if (keys["s"]) player.y += player.speed;
+  if (keys["a"]) player.x -= player.speed;
+  if (keys["d"]) player.x += player.speed;
+
+  // Bullets
+  bullets.forEach(b => {
+    b.x += b.dx;
+    b.y += b.dy;
+  });
+
+  // Zombies
+  zombies.forEach(z => {
+    let dx = player.x - z.x;
+    let dy = player.y - z.y;
+    let dist = Math.hypot(dx, dy);
+    z.x += dx / dist;
+    z.y += dy / dist;
+
+    // Damage player
+    if (dist < 20) {
+      player.health -= 0.2;
+    }
+  });
+
+  // Bullet hit zombies
+  bullets.forEach((b, bi) => {
+    zombies.forEach((z, zi) => {
+      let dist = Math.hypot(b.x - z.x, b.y - z.y);
+      if (dist < 20) {
+        zombies.splice(zi, 1);
+        bullets.splice(bi, 1);
+      }
+    });
+  });
+
+  draw();
+  requestAnimationFrame(update);
+}
+
+// Draw everything
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Player
+  ctx.fillStyle = "cyan";
+  ctx.fillRect(player.x - 10, player.y - 10, player.size, player.size);
+
+  // Bullets
+  ctx.fillStyle = "yellow";
+  bullets.forEach(b => {
+    ctx.fillRect(b.x, b.y, 5, 5);
+  });
+
+  // Zombies
+  ctx.fillStyle = "lime";
+  zombies.forEach(z => {
+    ctx.fillRect(z.x - 10, z.y - 10, z.size, z.size);
+  });
+
+  // Health
+  ctx.fillStyle = "white";
+  ctx.fillText("Health: " + Math.floor(player.health), 10, 20);
+
+  if (player.health <= 0) {
+    ctx.fillStyle = "red";
+    ctx.font = "40px Arial";
+    ctx.fillText("GAME OVER", 300, 300);
+  }
+}
+
+update();
+</script>
+
+</body>
+</html>
